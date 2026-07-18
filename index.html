@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b2237">
+<title>Trafalgar Log</title>
+<style>
+  :root{
+    --bg:#0b2237; --panel:#12314a; --panel2:#0f2a40; --ink:#eaf2f8;
+    --muted:#8fb0c7; --line:#1e466a;
+    --brass:#c9a24b; --sea:#2b8fb3; --green:#2e9e6b; --red:#c85a54;
+    --amber:#e0902e; --shadow:0 2px 10px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%}
+  body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  header{padding:16px 16px 10px;border-bottom:1px solid var(--line);
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  header h1{margin:0;font-size:19px;letter-spacing:.5px;font-weight:600}
+  header h1 small{color:var(--brass);font-weight:600;letter-spacing:1.5px;font-size:11px;display:block}
+  .wrap{max-width:640px;margin:0 auto;padding:14px 14px 120px}
+
+  /* status strip */
+  .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center}
+  .stat .v{font-size:19px;font-weight:700;line-height:1.1}
+  .stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+  .stat.low .v{color:var(--amber)}
+  .fuelbar{height:6px;border-radius:4px;background:#0a1c2c;overflow:hidden;margin-top:6px}
+  .fuelbar i{display:block;height:100%;background:var(--sea)}
+  .fuelbar.low i{background:var(--amber)}
+
+  /* trip banner */
+  .banner{background:linear-gradient(180deg,#123d33,#0f3329);border:1px solid #1c5a49;
+    border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:13px;display:none}
+  .banner.on{display:block}
+  .banner b{color:#7fe0b6}
+  .eng{background:linear-gradient(180deg,#3a2412,#2a1a0c);border-color:#6a4523}
+  .eng b{color:#f0b877}
+
+  /* buttons */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  button.act{border:none;border-radius:14px;padding:18px 12px;font-size:16px;font-weight:700;
+    color:#fff;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;
+    align-items:center;gap:4px;min-height:76px;justify-content:center;transition:transform .05s}
+  button.act:active{transform:scale(.97)}
+  button.act .ico{font-size:22px;line-height:1}
+  button.act .sub{font-size:11px;font-weight:500;opacity:.85}
+  .b-depart{background:var(--sea)}
+  .b-arrive{background:#7a5cc4}
+  .b-engon{background:var(--green)}
+  .b-engoff{background:var(--red)}
+  .b-fuel{background:var(--brass);color:#2a2109}
+  .b-mark{background:#4a6478}
+  .full{grid-column:1/-1}
+  button.act:disabled{opacity:.35;filter:grayscale(.5)}
+
+  /* section */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:12px}
+  .card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--brass)}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #12324b;font-size:14px}
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--muted)}
+  .row .val{font-variant-numeric:tabular-nums;text-align:right}
+
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--ink);border-radius:10px;padding:11px;font-size:15px;font-family:inherit}
+  textarea{min-height:60px;resize:vertical}
+  .mini{display:flex;gap:8px}
+  .mini button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:11px;font-size:14px;cursor:pointer}
+  .mini button.go{background:var(--sea);border-color:var(--sea);font-weight:700}
+
+  /* log table */
+  .logscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:12px;min-width:640px}
+  th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #143047;white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;
+    position:sticky;top:0;background:var(--panel)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.low td{background:rgba(224,144,46,.08)}
+
+  .exportbar{display:flex;gap:8px;flex-wrap:wrap}
+  .exportbar button{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--ink);border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer}
+  .exportbar button.pri{background:var(--green);border-color:var(--green)}
+
+  .hint{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);
+    background:#eaf2f8;color:#0b2237;padding:12px 18px;border-radius:24px;font-weight:600;
+    font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);transition:transform .25s;z-index:99;max-width:88%;text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(4,12,20,.7);display:none;align-items:flex-end;z-index:50}
+  .modal.on{display:flex}
+  .sheet{background:var(--bg);border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+    width:100%;max-width:640px;margin:0 auto;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
+  .sheet h3{margin:0 0 4px;font-size:17px}
+  .sheet .close{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;margin-top:-4px}
+  .go-full{width:100%;background:var(--sea);border:none;color:#fff;border-radius:12px;padding:14px;
+    font-size:16px;font-weight:700;margin-top:14px;cursor:pointer}
+  .tag{display:inline-block;background:#0f2a40;border:1px solid var(--line);border-radius:20px;
+    padding:4px 10px;font-size:11px;color:var(--muted);margin:2px 4px 2px 0}
+  details{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel2)}
+  summary{cursor:pointer;font-size:13px;color:var(--brass);font-weight:600}
+  details pre{white-space:pre-wrap;font-size:11px;color:var(--muted);background:#08161f;padding:10px;border-radius:8px;overflow:auto}
+  code{background:#08161f;padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1><small>S/V TRAFALGAR</small>Sailing Log</h1>
+  <button class="close" style="float:none;font-size:20px;color:var(--muted);background:none;border:none;cursor:pointer" onclick="openSettings()">⚙︎</button>
+</header>
+
+<div class="wrap">
+
+  <!-- live status -->
+  <div class="strip">
+    <div class="stat" id="s-fuel">
+      <div class="v" id="fuelGal">—</div>
+      <div class="l">gal remaining</div>
+      <div class="fuelbar" id="fuelBar"><i style="width:0%"></i></div>
+    </div>
+    <div class="stat">
+      <div class="v" id="fuelPct">—</div>
+      <div class="l">tank level</div>
+    </div>
+    <div class="stat">
+      <div class="v" id="rangeHrs">—</div>
+      <div class="l">engine hrs left</div>
+    </div>
+  </div>
+
+  <div class="banner" id="tripBanner"></div>
+  <div class="banner eng" id="engBanner"></div>
+
+  <!-- action buttons -->
+  <div class="grid">
+    <button class="act b-depart" id="btnDepart" onclick="depart()">
+      <span class="ico">⚓︎</span>Depart<span class="sub">mark dock + time</span></button>
+    <button class="act b-arrive" id="btnArrive" onclick="arrive()" disabled>
+      <span class="ico">🏁</span>Arrive<span class="sub">end trip · save row</span></button>
+    <button class="act b-engon" id="btnEngOn" onclick="engineOn()">
+      <span class="ico">▶</span>Engine On<span class="sub">start hour timer</span></button>
+    <button class="act b-engoff" id="btnEngOff" onclick="engineOff()" disabled>
+      <span class="ico">■</span>Engine Off<span class="sub">stop + add hours</span></button>
+    <button class="act b-fuel" onclick="openFuel()">
+      <span class="ico">⛽</span>Add Fuel<span class="sub">fill-up + calibrate</span></button>
+    <button class="act b-mark" onclick="markPosition()">
+      <span class="ico">📍</span>Mark Position<span class="sub">timestamp + GPS</span></button>
+  </div>
+
+  <!-- current trip detail -->
+  <div class="card" id="tripCard" style="display:none">
+    <h2>Current Trip</h2>
+    <div class="row"><span class="k">From</span><span class="val" id="tFrom">—</span></div>
+    <div class="row"><span class="k">Departed</span><span class="val" id="tDepart">—</span></div>
+    <div class="row"><span class="k">Engine hrs (running)</span><span class="val" id="tEng">0.0</span></div>
+    <div class="row"><span class="k">Fuel added this trip</span><span class="val" id="tFuel">0.0</span></div>
+    <div class="row"><span class="k">Marks dropped</span><span class="val" id="tMarks">0</span></div>
+  </div>
+
+  <!-- log -->
+  <div class="card">
+    <h2>Log <span style="float:right;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0" id="logCount"></span></h2>
+    <div class="logscroll">
+      <table id="logTable"><thead><tr>
+        <th>Date</th><th>From</th><th>Depart</th><th>To</th><th>Arrive</th>
+        <th>Dist NM</th><th>Eng hrs</th><th>Sea hrs</th><th>Fuel+</th><th>Fuel−</th><th>Fuel rem</th><th>Notes</th>
+      </tr></thead><tbody id="logBody"></tbody></table>
+    </div>
+    <div class="hint" id="emptyHint">No trips logged yet. Tap <b>Depart</b> to start one.</div>
+  </div>
+
+  <!-- export -->
+  <div class="card">
+    <h2>Get Data Into Your Spreadsheet</h2>
+    <div class="exportbar">
+      <button class="pri" onclick="downloadCSV()">⬇ Download CSV</button>
+      <button onclick="copyAll()">⧉ Copy all rows</button>
+      <button onclick="copyLast()">⧉ Copy last row</button>
+    </div>
+    <div class="hint">CSV columns match your Log tab exactly: Date · Vessel · From · Depart · To · Arrive · Distance (NM) · Engine hrs · Sea time (hrs) · Fuel added · Fuel burned · Fuel remaining · Crew · Wind/Weather · Notes. Paste copied rows straight under your last logged trip.</div>
+    <details>
+      <summary>Optional: sync straight to Google Sheets (setup steps)</summary>
+      <div class="hint" id="syncStatus"></div>
+      <label>Your Apps Script Web-App URL (leave blank to stay offline)</label>
+      <input id="syncURL" placeholder="https://script.google.com/macros/s/…/exec" oninput="saveSync()">
+      <div class="mini" style="margin-top:8px">
+        <button class="go" onclick="testSync()">Test / Push queued</button>
+      </div>
+      <pre id="scriptCode">Loading setup instructions…</pre>
+    </details>
+  </div>
+
+  <div class="hint" style="text-align:center;opacity:.6">
+    Data is stored on this device. Save this file to your Home Screen for offline use afield.
+  </div>
+</div>
+
+<!-- ===== Depart modal ===== -->
+<div class="modal" id="mDepart"><div class="sheet">
+  <button class="close" onclick="closeM('mDepart')">×</button>
+  <h3>Depart</h3>
+  <p class="hint" id="departGps">Getting GPS…</p>
+  <label>From (dock / anchorage)</label>
+  <input id="dFrom" placeholder="e.g. Kent Narrows">
+  <label>Crew aboard</label>
+  <input id="dCrew" placeholder="e.g. 2" inputmode="numeric">
+  <button class="go-full" onclick="confirmDepart()">Log Departure</button>
+</div></div>
+
+<!-- ===== Arrive modal ===== -->
+<div class="modal" id="mArrive"><div class="sheet">
+  <button class="close" onclick="closeM('mArrive')">×</button>
+  <h3>Arrive — end trip</h3>
+  <p class="hint" id="arriveGps">Getting GPS…</p>
+  <label>To (destination)</label>
+  <input id="aTo" placeholder="e.g. Wye River">
+  <label>Distance this trip (NM) <span style="color:var(--brass)" id="aDistGps"></span></label>
+  <input id="aDist" inputmode="decimal" placeholder="auto from GPS or type in">
+  <label>Wind / Weather</label>
+  <input id="aWx" placeholder="e.g. S 15–20 kt">
+  <label>Notes / log entry</label>
+  <textarea id="aNotes" placeholder="Reef points, anchorage, anything worth remembering"></textarea>
+  <button class="go-full" onclick="confirmArrive()">Save Trip to Log</button>
+</div></div>
+
+<!-- ===== Fuel modal ===== -->
+<div class="modal" id="mFuel"><div class="sheet">
+  <button class="close" onclick="closeM('mFuel')">×</button>
+  <h3>Add Fuel</h3>
+  <p class="hint" id="fuelCalc"></p>
+  <label>Gallons added</label>
+  <input id="fGal" inputmode="decimal" placeholder="e.g. 14.5">
+  <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
+    <input type="checkbox" id="fFull" style="width:auto" onchange="fuelFullToggle()" checked>
+    <span style="color:var(--ink)">Filled to full tank (enables burn-rate calibration)</span>
+  </label>
+  <p class="hint" id="fuelCalib"></p>
+  <button class="go-full b-fuel" style="background:var(--brass);color:#2a2109" onclick="confirmFuel()">Log Fuel</button>
+</div></div>
+
+<!-- ===== Settings modal ===== -->
+<div class="modal" id="mSettings"><div class="sheet">
+  <button class="close" onclick="closeM('mSettings')">×</button>
+  <h3>Settings</h3>
+  <label>Vessel name</label>
+  <input id="setVessel">
+  <label>Tank capacity (gal)</label>
+  <input id="setCap" inputmode="decimal">
+  <label>Engine fuel burn (gal/hr) — auto-updates when you fill to full</label>
+  <input id="setBurn" inputmode="decimal">
+  <label>Current fuel remaining (gal) — correct it here anytime</label>
+  <input id="setFuel" inputmode="decimal">
+  <button class="go-full" onclick="saveSettings()">Save</button>
+  <details>
+    <summary>Danger zone</summary>
+    <div class="mini" style="margin-top:8px">
+      <button onclick="if(confirm('Erase ALL logged trips on this device?')){DB.trips=[];persist();renderAll();closeM('mSettings');toast('Log cleared')}">Clear all trips</button>
+    </div>
+    <p class="hint">Export or sync first — this can't be undone.</p>
+  </details>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- storage ---------------- */
+const KEY='trafalgar_log_v1';
+const DEFAULTS={vessel:'Trafalgar',cap:23,burn:1.0,fuel:23};
+let DB=load();
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.settings)return s;}catch(e){}
+  return {settings:{...DEFAULTS}, fuel:DEFAULTS.fuel, trips:[], active:null, syncURL:'', queue:[]};
+}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){toast('Storage blocked — save the file to Home Screen');}}
+
+/* ---------------- helpers ---------------- */
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+function pad(n){return n<10?'0'+n:''+n;}
+function fmtDate(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function fmtTime(d){return pad(d.getHours())+':'+pad(d.getMinutes());}
+function r1(n){return Math.round(n*10)/10;}
+function nowISO(){return new Date().toISOString();}
+function haversine(a,b){ // nm between {lat,lon}
+  if(!a||!b)return null;
+  const R=3440.065,toR=x=>x*Math.PI/180;
+  const dLat=toR(b.lat-a.lat),dLon=toR(b.lon-a.lon);
+  const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
+}
+let lastFix=null;
+function getGPS(cb){
+  if(!navigator.geolocation){cb(null);return;}
+  navigator.geolocation.getCurrentPosition(
+    p=>{lastFix={lat:p.coords.latitude,lon:p.coords.longitude,t:Date.now()};cb(lastFix);},
+    ()=>cb(null),{enableHighAccuracy:true,timeout:8000,maximumAge:10000});
+}
+function gpsLabel(f){return f? f.lat.toFixed(4)+', '+f.lon.toFixed(4) : 'unavailable';}
+
+/* ---------------- status render ---------------- */
+function renderStatus(){
+  const cap=DB.settings.cap, fuel=DB.fuel, burn=DB.settings.burn||1;
+  const pct=cap? fuel/cap:0;
+  document.getElementById('fuelGal').textContent=r1(fuel);
+  document.getElementById('fuelPct').textContent=Math.round(pct*100)+'%';
+  document.getElementById('rangeHrs').textContent=r1(fuel/burn);
+  const bar=document.getElementById('fuelBar'), sfuel=document.getElementById('s-fuel');
+  bar.firstElementChild.style.width=Math.max(0,Math.min(100,pct*100))+'%';
+  const low=pct<=0.20;
+  bar.classList.toggle('low',low); sfuel.classList.toggle('low',low);
+}
+
+/* ---------------- engine timer ---------------- */
+function engineOn(){
+  if(!DB.active){toast('Tap Depart first');return;}
+  if(DB.active.engStart){toast('Engine already running');return;}
+  DB.active.engStart=Date.now();
+  DB.active.starts=(DB.active.starts||0)+1;
+  persist(); renderEngine(); renderTrip();
+  toast('Engine on — timer running');
+}
+function engineOff(){
+  if(!DB.active||!DB.active.engStart){return;}
+  const hrs=(Date.now()-DB.active.engStart)/3600000;
+  DB.active.engHrs=(DB.active.engHrs||0)+hrs;
+  DB.active.engStart=null;
+  // burn fuel immediately so remaining stays live
+  DB.fuel=Math.max(0, DB.fuel - hrs*(DB.settings.burn||1));
+  persist(); renderEngine(); renderTrip(); renderStatus();
+  toast('Engine off — '+r1(hrs*60)+' min added');
+}
+let engTick=setInterval(renderEngine,1000);
+function renderEngine(){
+  const b=document.getElementById('engBanner');
+  const on=DB.active&&DB.active.engStart;
+  document.getElementById('btnEngOn').disabled=!DB.active||!!on;
+  document.getElementById('btnEngOff').disabled=!on;
+  if(on){
+    const hrs=(Date.now()-DB.active.engStart)/3600000;
+    b.classList.add('on');
+    b.innerHTML='<b>Engine running</b> — this run '+r1(hrs*60)+' min · trip total '+r1((DB.active.engHrs||0)+hrs)+' hrs';
+    // live fuel preview
+    const live=Math.max(0,DB.fuel-hrs*(DB.settings.burn||1));
+    document.getElementById('fuelGal').textContent=r1(live);
+  }else{
+    b.classList.remove('on');
+    renderStatus();
+  }
+}
+
+/* ---------------- depart / arrive ---------------- */
+function depart(){
+  if(DB.active){toast('Trip already in progress — Arrive first');return;}
+  document.getElementById('dFrom').value=''; document.getElementById('dCrew').value='';
+  document.getElementById('departGps').textContent='Getting GPS…';
+  openM('mDepart');
+  getGPS(f=>{document.getElementById('departGps').textContent = f? 'GPS fix: '+gpsLabel(f) : 'GPS unavailable — location will be text only';});
+}
+function confirmDepart(){
+  const now=new Date();
+  DB.active={
+    startISO:nowISO(), date:fmtDate(now), depart:fmtTime(now),
+    from:document.getElementById('dFrom').value.trim()||'(unnamed)',
+    crew:document.getElementById('dCrew').value.trim(),
+    fromFix:lastFix, engHrs:0, fuelAdded:0, marks:[], starts:0, engStart:null
+  };
+  persist(); closeM('mDepart'); renderTrip(); renderEngine(); updateButtons();
+  toast('Departed '+DB.active.from);
+}
+function arrive(){
+  if(!DB.active){return;}
+  if(DB.active.engStart){engineOff();} // auto-stop engine on arrival
+  document.getElementById('aTo').value=''; document.getElementById('aWx').value='';
+  document.getElementById('aNotes').value=''; document.getElementById('aDist').value='';
+  document.getElementById('aDistGps').textContent='';
+  document.getElementById('arriveGps').textContent='Getting GPS…';
+  openM('mArrive');
+  getGPS(f=>{
+    document.getElementById('arriveGps').textContent = f? 'GPS fix: '+gpsLabel(f):'GPS unavailable';
+    const d=haversine(DB.active.fromFix,f);
+    if(d){document.getElementById('aDist').value=r1(d);document.getElementById('aDistGps').textContent='(GPS ≈ '+r1(d)+' NM straight-line)';}
+  });
+}
+function confirmArrive(){
+  const now=new Date(), a=DB.active;
+  const dep=new Date(a.startISO);
+  const seaHrs=r1((now-dep)/3600000);
+  const trip={
+    date:a.date, vessel:DB.settings.vessel, from:a.from, depart:a.depart,
+    to:document.getElementById('aTo').value.trim()||'(unnamed)', arrive:fmtTime(now),
+    dist:parseFloat(document.getElementById('aDist').value)||'',
+    engHrs:r1(a.engHrs||0), seaHrs:seaHrs,
+    fuelAdded:r1(a.fuelAdded||0), fuelBurned:r1((a.engHrs||0)*(DB.settings.burn||1)),
+    fuelRem:r1(DB.fuel), crew:a.crew, wx:document.getElementById('aWx').value.trim(),
+    notes:document.getElementById('aNotes').value.trim(),
+    starts:a.starts||0, marks:a.marks||[], fromFix:a.fromFix, toFix:lastFix
+  };
+  DB.trips.push(trip); DB.active=null;
+  persist(); closeM('mArrive'); renderAll(); updateButtons();
+  toast('Trip logged'); pushSync(trip);
+}
+
+/* ---------------- fuel ---------------- */
+function openFuel(){
+  document.getElementById('fGal').value='';
+  document.getElementById('fFull').checked=true;
+  const rem=r1(DB.fuel),cap=DB.settings.cap;
+  document.getElementById('fuelCalc').textContent='App thinks you have '+rem+' of '+cap+' gal. To top off: ~'+r1(cap-rem)+' gal.';
+  fuelFullToggle(); openM('mFuel');
+}
+function fuelFullToggle(){
+  const full=document.getElementById('fFull').checked;
+  const el=document.getElementById('fuelCalib');
+  el.textContent = full
+    ? 'Because you filled to full, burn rate will recalibrate: (fuel used since last full) ÷ (engine hrs since last full).'
+    : 'Partial fill — balance updates but burn rate stays '+DB.settings.burn+' gal/hr.';
+}
+function confirmFuel(){
+  const gal=parseFloat(document.getElementById('fGal').value);
+  if(!gal||gal<=0){toast('Enter gallons');return;}
+  const full=document.getElementById('fFull').checked;
+  const cap=DB.settings.cap;
+
+  // engine hours accumulated since the last "full" marker
+  DB._hrsSinceFull=(DB._hrsSinceFull||0);
+
+  if(full){
+    const before=DB.fuel;
+    const afterFull=cap; // now full
+    // fuel consumed since last full = (fuel at last full) - (fuel now, before adding) ... approximate via engine hrs tracked
+    const hrs=DB._hrsSinceFull;
+    if(hrs>0.2){
+      const used=(DB._fuelAtLastFull!=null? DB._fuelAtLastFull:before) - before + 0; // safety
+      // Prefer hours-based: gallons put in to reach full ≈ gallons burned since last full
+      const newBurn=r1(gal/hrs);
+      if(newBurn>0.1 && newBurn<5){
+        DB.settings.burn=newBurn;
+        toast('Burn rate recalibrated → '+newBurn+' gal/hr');
+      }
+    }
+    DB.fuel=cap;
+    DB._hrsSinceFull=0; DB._fuelAtLastFull=cap;
+  }else{
+    DB.fuel=Math.min(cap, DB.fuel+gal);
+  }
+  if(DB.active){DB.active.fuelAdded=(DB.active.fuelAdded||0)+gal;}
+  persist(); closeM('mFuel'); renderAll();
+}
+
+/* track hours since full for calibration */
+const _origEngineOff=engineOff;
+engineOff=function(){
+  if(DB.active&&DB.active.engStart){
+    const hrs=(Date.now()-DB.active.engStart)/3600000;
+    DB._hrsSinceFull=(DB._hrsSinceFull||0)+hrs;
+  }
+  _origEngineOff();
+};
+
+/* ---------------- mark position ---------------- */
+function markPosition(){
+  getGPS(f=>{
+    const now=new Date();
+    const mark={t:fmtTime(now),iso:nowISO(),fix:f};
+    if(DB.active){DB.active.marks=DB.active.marks||[];DB.active.marks.push(mark);persist();renderTrip();}
+    toast(f? '📍 Marked '+gpsLabel(f)+' @ '+mark.t : '📍 Marked '+mark.t+' (no GPS)');
+  });
+}
+
+/* ---------------- trip card ---------------- */
+function renderTrip(){
+  const c=document.getElementById('tripCard'), banner=document.getElementById('tripBanner');
+  if(!DB.active){c.style.display='none';banner.classList.remove('on');return;}
+  c.style.display='block';
+  const a=DB.active;
+  document.getElementById('tFrom').textContent=a.from;
+  document.getElementById('tDepart').textContent=a.date+' '+a.depart;
+  document.getElementById('tEng').textContent=r1(a.engHrs||0)+' hrs';
+  document.getElementById('tFuel').textContent=r1(a.fuelAdded||0)+' gal';
+  document.getElementById('tMarks').textContent=(a.marks||[]).length;
+  banner.classList.add('on');
+  banner.innerHTML='<b>Trip in progress</b> — departed '+a.from+' at '+a.depart+'. Tap Arrive to close it out.';
+}
+function updateButtons(){
+  document.getElementById('btnDepart').disabled=!!DB.active;
+  document.getElementById('btnArrive').disabled=!DB.active;
+}
+
+/* ---------------- log table ---------------- */
+function renderLog(){
+  const body=document.getElementById('logBody');
+  body.innerHTML='';
+  DB.trips.forEach(t=>{
+    const low=(DB.settings.cap&&t.fuelRem/DB.settings.cap<=0.20);
+    const tr=document.createElement('tr'); if(low)tr.className='low';
+    tr.innerHTML=`<td>${t.date}</td><td>${esc(t.from)}</td><td>${t.depart||''}</td>
+      <td>${esc(t.to)}</td><td>${t.arrive||''}</td>
+      <td class="num">${t.dist||''}</td><td class="num">${t.engHrs||''}</td><td class="num">${t.seaHrs||''}</td>
+      <td class="num">${t.fuelAdded||''}</td><td class="num">${t.fuelBurned||''}</td><td class="num">${t.fuelRem||''}</td>
+      <td>${esc(t.notes||'')}</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('emptyHint').style.display=DB.trips.length?'none':'block';
+  document.getElementById('logCount').textContent=DB.trips.length? DB.trips.length+' logged':'';
+}
+function esc(s){return (s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+
+/* ---------------- export ---------------- */
+const HEAD=['Date','Vessel','From','Depart','To','Arrive','Distance (NM)','Engine hrs','Sea time (hrs)','Fuel added (gal)','Fuel burned (gal)','Fuel remaining (gal)','Crew','Wind / Weather','Notes / Log entry'];
+function tripRow(t){return [t.date,t.vessel||DB.settings.vessel,t.from,t.depart,t.to,t.arrive,t.dist,t.engHrs,t.seaHrs,t.fuelAdded,t.fuelBurned,t.fuelRem,t.crew,t.wx,t.notes];}
+function csvCell(v){v=(v==null?'':''+v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function downloadCSV(){
+  if(!DB.trips.length){toast('Nothing to export yet');return;}
+  const rows=[HEAD].concat(DB.trips.map(tripRow));
+  const csv=rows.map(r=>r.map(csvCell).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='Trafalgar_log_'+fmtDate(new Date())+'.csv';a.click();
+  toast('CSV downloaded');
+}
+function tsv(rows){return rows.map(r=>r.map(c=>(c==null?'':''+c)).join('\t')).join('\n');}
+function copyAll(){
+  if(!DB.trips.length){toast('Nothing to copy');return;}
+  copy(tsv(DB.trips.map(tripRow))); toast('All '+DB.trips.length+' rows copied — paste into Log tab');
+}
+function copyLast(){
+  if(!DB.trips.length){toast('Nothing to copy');return;}
+  copy(tsv([tripRow(DB.trips[DB.trips.length-1])])); toast('Last row copied — paste into Log tab');
+}
+function copy(text){
+  if(navigator.clipboard){navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));}
+  else fallbackCopy(text);
+}
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();try{document.execCommand('copy');}catch(e){}t.remove();}
+
+/* ---------------- google sheets sync ---------------- */
+function saveSync(){DB.syncURL=document.getElementById('syncURL').value.trim();persist();renderSyncStatus();}
+function renderSyncStatus(){
+  const q=(DB.queue||[]).length;
+  document.getElementById('syncStatus').textContent = DB.syncURL
+    ? (q? q+' trip(s) queued to push.':'Connected. New trips push automatically when online.')
+    : 'Offline mode — no sync configured. The app works fully without this.';
+}
+function pushSync(trip){
+  if(!DB.syncURL){return;}
+  DB.queue=DB.queue||[]; DB.queue.push(tripRow(trip)); persist();
+  flushQueue();
+}
+function flushQueue(){
+  if(!DB.syncURL||!(DB.queue||[]).length)return;
+  const pending=DB.queue.slice();
+  fetch(DB.syncURL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({header:HEAD,rows:pending})})
+    .then(()=>{DB.queue=[];persist();renderSyncStatus();toast('Synced to Google Sheets');})
+    .catch(()=>{renderSyncStatus();/* stays queued */});
+}
+function testSync(){
+  if(!DB.syncURL){toast('Paste your web-app URL first');return;}
+  if((DB.queue||[]).length){flushQueue();}
+  else{fetch(DB.syncURL,{method:'POST',mode:'no-cors',body:JSON.stringify({header:HEAD,rows:[]})})
+    .then(()=>toast('URL reachable ✓')).catch(()=>toast('Could not reach URL'));}
+}
+
+/* ---------------- settings ---------------- */
+function openSettings(){
+  document.getElementById('setVessel').value=DB.settings.vessel;
+  document.getElementById('setCap').value=DB.settings.cap;
+  document.getElementById('setBurn').value=DB.settings.burn;
+  document.getElementById('setFuel').value=r1(DB.fuel);
+  openM('mSettings');
+}
+function saveSettings(){
+  DB.settings.vessel=document.getElementById('setVessel').value.trim()||'Trafalgar';
+  DB.settings.cap=parseFloat(document.getElementById('setCap').value)||23;
+  DB.settings.burn=parseFloat(document.getElementById('setBurn').value)||1;
+  DB.fuel=parseFloat(document.getElementById('setFuel').value);
+  if(isNaN(DB.fuel))DB.fuel=DB.settings.cap;
+  persist(); renderAll(); closeM('mSettings'); toast('Settings saved');
+}
+
+/* ---------------- modal plumbing ---------------- */
+function openM(id){document.getElementById(id).classList.add('on');}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+
+/* ---------------- boot ---------------- */
+function renderAll(){renderStatus();renderTrip();renderLog();renderEngine();updateButtons();renderSyncStatus();}
+document.getElementById('syncURL').value=DB.syncURL||'';
+document.getElementById('scriptCode').textContent=APPS_SCRIPT;
+renderAll();
+window.addEventListener('online',flushQueue);
+
+/* apps script text shown in the setup panel */
+function _s(){}
+</script>
+<script>
+const APPS_SCRIPT=
+`SETUP — one time, ~15 min:
+
+1. Open your Google Sheet. Add a tab named "Log" if it isn't there.
+2. Extensions ▸ Apps Script. Delete any code, paste this:
+
+function doPost(e){
+  var data = JSON.parse(e.postData.contents);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName("Log") || ss.insertSheet("Log");
+  if(sh.getLastRow()===0 && data.header){ sh.appendRow(data.header); }
+  (data.rows||[]).forEach(function(r){ sh.appendRow(r); });
+  return ContentService.createTextOutput("ok");
+}
+
+3. Click Deploy ▸ New deployment ▸ type "Web app".
+4. Execute as: Me.  Who has access: Anyone.
+5. Deploy, authorize, copy the /exec URL it gives you.
+6. Paste that URL into the field above. Done — trips now
+   append to your Sheet automatically when you're online.`;
+document.getElementById('scriptCode').textContent=APPS_SCRIPT;
+</script>
+</body>
+</html>
