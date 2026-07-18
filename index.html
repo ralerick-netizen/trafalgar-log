@@ -5,24 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0b2237">
+<meta name="theme-color" content="#5c1a24">
 <title>Trafalgar Log</title>
 <style>
   :root{
-    --bg:#0b2237; --panel:#12314a; --panel2:#0f2a40; --ink:#eaf2f8;
-    --muted:#8fb0c7; --line:#1e466a;
-    --brass:#c9a24b; --sea:#2b8fb3; --green:#2e9e6b; --red:#c85a54;
-    --amber:#e0902e; --shadow:0 2px 10px rgba(0,0,0,.35);
+    /* Island Packet 29 palette: cream hull · oxblood dodger · teak trim · navy */
+    --bg:#f3ead6;          /* cream hull */
+    --panel:#fbf5e8;       /* lighter cream panel */
+    --panel2:#efe3c9;      /* recessed cream */
+    --ink:#33271a;         /* dark teak text */
+    --muted:#8a7a5f;       /* faded teak */
+    --line:#d8c6a0;        /* toe-rail tan divider */
+    --brass:#9a6b1f;       /* teak/brass headings */
+    --oxblood:#5c1a24;     /* dodger / sail cover — primary action */
+    --oxblood2:#7a2731;    /* lighter oxblood */
+    --navy:#243b55;        /* accent */
+    --teak:#7a5230;        /* wood */
+    --green:#3f7d4e; --red:#a33a34;
+    --amber:#c07a1e; --shadow:0 2px 8px rgba(60,40,20,.18);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-text-size-adjust:100%}
   body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-  header{padding:16px 16px 10px;border-bottom:1px solid var(--line);
-    display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-  header h1{margin:0;font-size:19px;letter-spacing:.5px;font-weight:600}
-  header h1 small{color:var(--brass);font-weight:600;letter-spacing:1.5px;font-size:11px;display:block}
+  header{padding:16px 16px 10px;border-bottom:3px solid var(--oxblood);
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;background:var(--panel)}
+  header h1{margin:0;font-size:19px;letter-spacing:.5px;font-weight:600;color:var(--ink)}
+  header h1 small{color:var(--oxblood);font-weight:700;letter-spacing:1.5px;font-size:11px;display:block}
   .wrap{max-width:640px;margin:0 auto;padding:14px 14px 120px}
 
   /* status strip */
@@ -31,17 +41,17 @@
   .stat .v{font-size:19px;font-weight:700;line-height:1.1}
   .stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
   .stat.low .v{color:var(--amber)}
-  .fuelbar{height:6px;border-radius:4px;background:#0a1c2c;overflow:hidden;margin-top:6px}
-  .fuelbar i{display:block;height:100%;background:var(--sea)}
+  .fuelbar{height:6px;border-radius:4px;background:#e0d2b0;overflow:hidden;margin-top:6px}
+  .fuelbar i{display:block;height:100%;background:var(--navy)}
   .fuelbar.low i{background:var(--amber)}
 
   /* trip banner */
-  .banner{background:linear-gradient(180deg,#123d33,#0f3329);border:1px solid #1c5a49;
+  .banner{background:linear-gradient(180deg,#e7ddc5,#ddd0b2);border:1px solid var(--line);
     border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:13px;display:none}
   .banner.on{display:block}
-  .banner b{color:#7fe0b6}
-  .eng{background:linear-gradient(180deg,#3a2412,#2a1a0c);border-color:#6a4523}
-  .eng b{color:#f0b877}
+  .banner b{color:var(--oxblood)}
+  .eng{background:linear-gradient(180deg,#efdcc2,#e6cfa8);border-color:#cba86e}
+  .eng b{color:var(--teak)}
 
   /* buttons */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -51,12 +61,13 @@
   button.act:active{transform:scale(.97)}
   button.act .ico{font-size:22px;line-height:1}
   button.act .sub{font-size:11px;font-weight:500;opacity:.85}
-  .b-depart{background:var(--sea)}
-  .b-arrive{background:#7a5cc4}
+  .b-depart{background:var(--navy)}
+  .b-arrive{background:var(--oxblood)}
   .b-engon{background:var(--green)}
   .b-engoff{background:var(--red)}
-  .b-fuel{background:var(--brass);color:#2a2109}
-  .b-mark{background:#4a6478}
+  .b-fuel{background:var(--brass);color:#fff}
+  .b-mark{background:var(--teak)}
+  .b-event{background:var(--oxblood2)}
   .full{grid-column:1/-1}
   button.act:disabled{opacity:.35;filter:grayscale(.5)}
 
@@ -64,55 +75,65 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
     padding:14px;margin-bottom:12px}
   .card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--brass)}
-  .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #12324b;font-size:14px}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
   .row:last-child{border-bottom:none}
   .row .k{color:var(--muted)}
   .row .val{font-variant-numeric:tabular-nums;text-align:right}
 
   label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
-  input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);
+  input,textarea,select{width:100%;background:#fff;border:1px solid var(--line);
     color:var(--ink);border-radius:10px;padding:11px;font-size:15px;font-family:inherit}
   textarea{min-height:60px;resize:vertical}
   .mini{display:flex;gap:8px}
   .mini button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
     border-radius:10px;padding:11px;font-size:14px;cursor:pointer}
-  .mini button.go{background:var(--sea);border-color:var(--sea);font-weight:700}
+  .mini button.go{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
 
   /* log table */
   .logscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px}
   table{border-collapse:collapse;width:100%;font-size:12px;min-width:640px}
-  th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #143047;white-space:nowrap}
+  th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
   th{color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;
     position:sticky;top:0;background:var(--panel)}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
-  tr.low td{background:rgba(224,144,46,.08)}
+  tr.low td{background:rgba(192,122,30,.12)}
 
   .exportbar{display:flex;gap:8px;flex-wrap:wrap}
   .exportbar button{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);
     color:var(--ink);border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer}
-  .exportbar button.pri{background:var(--green);border-color:var(--green)}
+  .exportbar button.pri{background:var(--green);border-color:var(--green);color:#fff}
 
   .hint{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);
-    background:#eaf2f8;color:#0b2237;padding:12px 18px;border-radius:24px;font-weight:600;
-    font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);transition:transform .25s;z-index:99;max-width:88%;text-align:center}
+    background:var(--ink);color:#fff8ea;padding:12px 18px;border-radius:24px;font-weight:600;
+    font-size:14px;box-shadow:0 6px 20px rgba(60,40,20,.4);transition:transform .25s;z-index:99;max-width:88%;text-align:center}
   .toast.show{transform:translateX(-50%) translateY(0)}
 
   /* modal */
-  .modal{position:fixed;inset:0;background:rgba(4,12,20,.7);display:none;align-items:flex-end;z-index:50}
+  .modal{position:fixed;inset:0;background:rgba(51,39,26,.45);display:none;align-items:flex-end;z-index:50}
   .modal.on{display:flex}
-  .sheet{background:var(--bg);border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+  .sheet{background:var(--bg);border-top:3px solid var(--oxblood);border-radius:18px 18px 0 0;
     width:100%;max-width:640px;margin:0 auto;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
-  .sheet h3{margin:0 0 4px;font-size:17px}
+  .sheet h3{margin:0 0 4px;font-size:17px;color:var(--oxblood)}
   .sheet .close{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;margin-top:-4px}
-  .go-full{width:100%;background:var(--sea);border:none;color:#fff;border-radius:12px;padding:14px;
+  .go-full{width:100%;background:var(--oxblood);border:none;color:#fff;border-radius:12px;padding:14px;
     font-size:16px;font-weight:700;margin-top:14px;cursor:pointer}
-  .tag{display:inline-block;background:#0f2a40;border:1px solid var(--line);border-radius:20px;
+  .tag{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;
     padding:4px 10px;font-size:11px;color:var(--muted);margin:2px 4px 2px 0}
   details{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel2)}
   summary{cursor:pointer;font-size:13px;color:var(--brass);font-weight:600}
-  details pre{white-space:pre-wrap;font-size:11px;color:var(--muted);background:#08161f;padding:10px;border-radius:8px;overflow:auto}
-  code{background:#08161f;padding:1px 5px;border-radius:4px;font-size:12px}
+  details pre{white-space:pre-wrap;font-size:11px;color:#f0e6d0;background:#3a2c1c;padding:10px;border-radius:8px;overflow:auto}
+  code{background:#3a2c1c;color:#f0e6d0;padding:1px 5px;border-radius:4px;font-size:12px}
+
+  /* events list */
+  .evlist{margin-top:4px}
+  .evitem{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .evitem:last-child{border-bottom:none}
+  .evitem .et{color:var(--oxblood);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .evitem .ex{color:var(--muted);cursor:pointer;margin-left:auto}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+  .chips button{background:var(--panel2);border:1px solid var(--line);color:var(--teak);
+    border-radius:16px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
@@ -157,6 +178,8 @@
       <span class="ico">⛽</span>Add Fuel<span class="sub">fill-up + calibrate</span></button>
     <button class="act b-mark" onclick="markPosition()">
       <span class="ico">📍</span>Mark Position<span class="sub">timestamp + GPS</span></button>
+    <button class="act b-event full" onclick="openEvent()">
+      <span class="ico">✎</span>Log Event / Note<span class="sub">timestamped entry during the trip</span></button>
   </div>
 
   <!-- current trip detail -->
@@ -167,6 +190,12 @@
     <div class="row"><span class="k">Engine hrs (running)</span><span class="val" id="tEng">0.0</span></div>
     <div class="row"><span class="k">Fuel added this trip</span><span class="val" id="tFuel">0.0</span></div>
     <div class="row"><span class="k">Marks dropped</span><span class="val" id="tMarks">0</span></div>
+
+    <h2 style="margin-top:16px">Events this trip</h2>
+    <div class="evlist" id="evList"><div class="hint" id="evEmpty">No events yet. Tap <b>Log Event / Note</b> above to add one.</div></div>
+
+    <h2 style="margin-top:16px">Running notes</h2>
+    <textarea id="tripNotes" placeholder="Jot as you go — reef points, anchorage, anything worth remembering. This carries into the Notes column at Arrive." oninput="saveNotes()"></textarea>
   </div>
 
   <!-- log -->
@@ -231,7 +260,8 @@
   <label>Wind / Weather</label>
   <input id="aWx" placeholder="e.g. S 15–20 kt">
   <label>Notes / log entry</label>
-  <textarea id="aNotes" placeholder="Reef points, anchorage, anything worth remembering"></textarea>
+  <p class="hint" id="aCarry" style="margin-top:0"></p>
+  <textarea id="aNotes" placeholder="Any final remarks — these add to your running notes and events"></textarea>
   <button class="go-full" onclick="confirmArrive()">Save Trip to Log</button>
 </div></div>
 
@@ -248,6 +278,29 @@
   </label>
   <p class="hint" id="fuelCalib"></p>
   <button class="go-full b-fuel" style="background:var(--brass);color:#2a2109" onclick="confirmFuel()">Log Fuel</button>
+</div></div>
+
+<!-- ===== Event modal ===== -->
+<div class="modal" id="mEvent"><div class="sheet">
+  <button class="close" onclick="closeM('mEvent')">×</button>
+  <h3>Log Event / Note</h3>
+  <p class="hint" id="eventTime"></p>
+  <div class="chips" id="eventChips">
+    <button onclick="quickEvent('Reefed main')">Reefed main</button>
+    <button onclick="quickEvent('Shook out reef')">Shook out reef</button>
+    <button onclick="quickEvent('Tacked')">Tacked</button>
+    <button onclick="quickEvent('Gybed')">Gybed</button>
+    <button onclick="quickEvent('Raised sails')">Raised sails</button>
+    <button onclick="quickEvent('Dropped sails')">Dropped sails</button>
+    <button onclick="quickEvent('Anchored')">Anchored</button>
+    <button onclick="quickEvent('Weighed anchor')">Weighed anchor</button>
+    <button onclick="quickEvent('Sail change')">Sail change</button>
+    <button onclick="quickEvent('Course change')">Course change</button>
+  </div>
+  <label>Event / note text</label>
+  <input id="eventText" placeholder="e.g. Reefed to first point, wind building">
+  <button class="go-full" onclick="confirmEvent()">Add Event</button>
+  <p class="hint">Tap a quick button to fill the text, or type your own. Time (and GPS if available) are captured automatically.</p>
 </div></div>
 
 <!-- ===== Settings modal ===== -->
@@ -307,6 +360,51 @@ function getGPS(cb){
     ()=>cb(null),{enableHighAccuracy:true,timeout:8000,maximumAge:10000});
 }
 function gpsLabel(f){return f? f.lat.toFixed(4)+', '+f.lon.toFixed(4) : 'unavailable';}
+
+/* ---------------- events + notes ---------------- */
+function openEvent(){
+  if(!DB.active){toast('Tap Depart first');return;}
+  document.getElementById('eventText').value='';
+  document.getElementById('eventTime').textContent='Time: '+fmtTime(new Date())+' — getting GPS…';
+  openM('mEvent');
+  getGPS(f=>{document.getElementById('eventTime').textContent='Time: '+fmtTime(new Date())+(f?' · GPS '+gpsLabel(f):' · no GPS');});
+}
+function quickEvent(txt){document.getElementById('eventText').value=txt;}
+function confirmEvent(){
+  const txt=document.getElementById('eventText').value.trim();
+  if(!txt){toast('Enter or pick an event');return;}
+  const now=new Date();
+  DB.active.events=DB.active.events||[];
+  DB.active.events.push({t:fmtTime(now),iso:nowISO(),text:txt,fix:lastFix});
+  persist(); renderEvents(); closeM('mEvent'); toast('Event logged');
+}
+function deleteEvent(i){
+  if(!DB.active||!DB.active.events)return;
+  DB.active.events.splice(i,1); persist(); renderEvents();
+}
+function renderEvents(){
+  const list=document.getElementById('evList');
+  const evs=(DB.active&&DB.active.events)||[];
+  if(!evs.length){list.innerHTML='<div class="hint" id="evEmpty">No events yet. Tap <b>Log Event / Note</b> above to add one.</div>';return;}
+  list.innerHTML=evs.map((e,i)=>
+    `<div class="evitem"><span class="et">${e.t}</span><span>${esc(e.text)}</span><span class="ex" onclick="deleteEvent(${i})">✕</span></div>`
+  ).join('');
+}
+function saveNotes(){
+  if(!DB.active)return;
+  DB.active.notes=document.getElementById('tripNotes').value;
+  persist();
+}
+/* combine running notes + events into one Notes-column string at Arrive */
+function buildNotes(a){
+  let parts=[];
+  if(a.notes&&a.notes.trim())parts.push(a.notes.trim());
+  if((a.events||[]).length){
+    const ev=a.events.map(e=>e.t+' '+e.text).join('; ');
+    parts.push('Events: '+ev);
+  }
+  return parts.join(' | ');
+}
 
 /* ---------------- status render ---------------- */
 function renderStatus(){
@@ -384,6 +482,8 @@ function arrive(){
   document.getElementById('aTo').value=''; document.getElementById('aWx').value='';
   document.getElementById('aNotes').value=''; document.getElementById('aDist').value='';
   document.getElementById('aDistGps').textContent='';
+  const carry=buildNotes({notes:DB.active.notes,events:DB.active.events});
+  document.getElementById('aCarry').textContent = carry? 'Will be saved with this trip: '+carry : '';
   document.getElementById('arriveGps').textContent='Getting GPS…';
   openM('mArrive');
   getGPS(f=>{
@@ -396,6 +496,9 @@ function confirmArrive(){
   const now=new Date(), a=DB.active;
   const dep=new Date(a.startISO);
   const seaHrs=r1((now-dep)/3600000);
+  // merge: text typed at Arrive + running trip notes + timestamped events
+  const arriveNote=document.getElementById('aNotes').value.trim();
+  const combined=[arriveNote, buildNotes({notes:a.notes,events:a.events})].filter(s=>s&&s.trim()).join(' | ');
   const trip={
     date:a.date, vessel:DB.settings.vessel, from:a.from, depart:a.depart,
     to:document.getElementById('aTo').value.trim()||'(unnamed)', arrive:fmtTime(now),
@@ -403,8 +506,8 @@ function confirmArrive(){
     engHrs:r1(a.engHrs||0), seaHrs:seaHrs,
     fuelAdded:r1(a.fuelAdded||0), fuelBurned:r1((a.engHrs||0)*(DB.settings.burn||1)),
     fuelRem:r1(DB.fuel), crew:a.crew, wx:document.getElementById('aWx').value.trim(),
-    notes:document.getElementById('aNotes').value.trim(),
-    starts:a.starts||0, marks:a.marks||[], fromFix:a.fromFix, toFix:lastFix
+    notes:combined,
+    starts:a.starts||0, marks:a.marks||[], events:a.events||[], fromFix:a.fromFix, toFix:lastFix
   };
   DB.trips.push(trip); DB.active=null;
   persist(); closeM('mArrive'); renderAll(); updateButtons();
@@ -489,6 +592,9 @@ function renderTrip(){
   document.getElementById('tEng').textContent=r1(a.engHrs||0)+' hrs';
   document.getElementById('tFuel').textContent=r1(a.fuelAdded||0)+' gal';
   document.getElementById('tMarks').textContent=(a.marks||[]).length;
+  renderEvents();
+  const nt=document.getElementById('tripNotes');
+  if(document.activeElement!==nt){nt.value=a.notes||'';}
   banner.classList.add('on');
   banner.innerHTML='<b>Trip in progress</b> — departed '+a.from+' at '+a.depart+'. Tap Arrive to close it out.';
 }
